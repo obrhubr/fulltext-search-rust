@@ -1,0 +1,2 @@
+ - implement edit method to update the entries in rocksdb
+ - optimise fully inverted index
