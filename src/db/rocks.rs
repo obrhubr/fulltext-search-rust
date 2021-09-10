@@ -1,11 +1,10 @@
 use crate::kv::{KVStore, RocksDB};
 use actix_web::{web};
 use bincode::{serialize, deserialize};
-use std::error::Error;
 
-use super::helper::{Value, Values, Document, remove_punctuation};
+use super::helper::{Document, GeneralError, Value, Values, remove_punctuation};
 
-pub fn search_document_rocks(db: &web::Data<RocksDB>, query: String) -> Result<Vec<Values>, Box<dyn Error>> {
+pub fn search_document_rocks(db: &web::Data<RocksDB>, query: String) -> Result<Vec<Values>, GeneralError> {
     // Split the query text by words
     let split_query = query.split(' ');
 
@@ -28,7 +27,7 @@ pub fn search_document_rocks(db: &web::Data<RocksDB>, query: String) -> Result<V
                 continue;
             },
             Err(e) => {
-                return Err(Box::new(e));
+                return Err(GeneralError::Rocks(e));
             },
         }
     }
@@ -36,7 +35,7 @@ pub fn search_document_rocks(db: &web::Data<RocksDB>, query: String) -> Result<V
     Ok(search_results)
 }
 
-pub fn add_document_rocks(db: &web::Data<RocksDB>, doc: Document) -> Result<(), Box<dyn Error>> {
+pub fn add_document_rocks(db: &web::Data<RocksDB>, doc: &Document) -> Result<(), GeneralError> {
     // Split the input text by words
     let split_text = doc.text.split(' ');
 
@@ -62,7 +61,7 @@ pub fn add_document_rocks(db: &web::Data<RocksDB>, doc: Document) -> Result<(), 
                 new_values.values.push(Value { id: doc.id, position: i});
             },
             Err(e) => {
-                return Err(Box::new(e));
+                return Err(GeneralError::Rocks(e));
             },
         }
 
@@ -75,7 +74,7 @@ pub fn add_document_rocks(db: &web::Data<RocksDB>, doc: Document) -> Result<(), 
     Ok(())
 }
 
-pub fn remove_document_rocks(db: &web::Data<RocksDB>, doc: Document) -> Result<(), Box<dyn Error>> {
+pub fn remove_document_rocks(db: &web::Data<RocksDB>, doc: &Document) -> Result<(), GeneralError> {
     // Loop through all words in document and delete from db
     let split_text = doc.text.split(' ');
 
@@ -100,7 +99,7 @@ pub fn remove_document_rocks(db: &web::Data<RocksDB>, doc: Document) -> Result<(
             },
             Ok(None) => {},
             Err(e) => {
-                return Err(Box::new(e))
+                return Err(GeneralError::Rocks(e))
             },
         }
 
@@ -111,9 +110,9 @@ pub fn remove_document_rocks(db: &web::Data<RocksDB>, doc: Document) -> Result<(
     Ok(())
 }
 
-pub fn update_document_rocks(db: &web::Data<RocksDB>, old_doc: Document, new_doc: Document) -> Result<(), Box<dyn Error>> {
-    remove_document(&db, old_doc)?;
-    add_document(&db, new_doc)?;
+pub fn update_document_rocks(db: &web::Data<RocksDB>, old_doc: &Document, new_doc: &Document) -> Result<(), GeneralError> {
+    remove_document_rocks(&db, &old_doc)?;
+    add_document_rocks(&db, &new_doc)?;
 
     Ok(())
 }

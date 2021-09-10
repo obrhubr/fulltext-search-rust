@@ -1,10 +1,11 @@
-use rusqlite::{Connection, Result, Error};
+use rusqlite::{Result, Error};
 
 use super::helper::Document;
 
-pub fn init() -> Result<Connection, Error> {
-    let db = Connection::open("./data/sqlite.db")?;
+pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
+pub type Connection = r2d2::PooledConnection<r2d2_sqlite::SqliteConnectionManager>;
 
+pub fn init(db: Connection) -> Result<(), Error> {
     db.execute(
         "create table if not exists documents (
             id integer primary key,
@@ -15,12 +16,12 @@ pub fn init() -> Result<Connection, Error> {
         [],
     )?;
 
-    Ok(db)
+    Ok(())
 }
 
-pub fn add_document_sqlite(db: Connection, doc: Document) -> Result<(), Error> {
+pub fn add_document_sqlite(db: Connection, doc: &Document) -> Result<(), Error> {
     db.execute(
-        "INSERT INTO documents (id, name, text) values (?1, ?2, ?3)",
+        "INSERT INTO documents (doc_id, doc_name, doc_text) values (?1, ?2, ?3)",
         &[&doc.id.to_string(), &doc.name.to_string(), &doc.text.to_string()],
     )?;
 
@@ -57,20 +58,20 @@ pub fn remove_document_sqlite(db: Connection, id: i64) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn get_document_sqlite(db: Connection, id: i64) -> Result<Vec<Document>, Error> {
+pub fn get_document_sqlite(db: &Connection, id: i64) -> Result<Vec<Document>, Error> {
     let mut stmt = db.prepare(
         "SELECT * FROM documents WHERE doc_id = ?",
     )?;
 
-    let results_iter = stmt.query_map([id], |row| {
+    let results_iter = stmt.query_map([id.to_string()], |row| {
         Ok(Document {
-            id: row.get(1)?,
+            id: row.get::<usize, String>(1)?.parse::<i64>().unwrap(),
             name: row.get(2)?,
             text: row.get(3)?
         })
     })?;
 
-    let results: Vec<Document>;
+    let mut results: Vec<Document> = Vec::new();
     for result in results_iter {
         results.push(result.unwrap());
     }

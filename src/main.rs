@@ -1,19 +1,20 @@
 use actix_web::{post, web, App, Error, HttpResponse, HttpServer};
+use db::helper::GeneralError;
+use db::sqlite;
 use serde::{Deserialize, Serialize};
 
-mod db;
+use r2d2_sqlite::{self, SqliteConnectionManager};
 
+mod db;
 mod kv;
+use crate::db::{add_document, edit_document, remove_document, search_document};
+use crate::db::sqlite::{init, Pool};
+use crate::db::helper::{Document};
 use crate::kv::RocksDB;
 
 #[derive(Serialize, Deserialize)]
 struct Response {
     response: String
-}
-
-#[derive(Serialize, Deserialize)]
-struct SearchResponse {
-    results: Vec<Values>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -25,49 +26,54 @@ struct SearchRequest {
 }
 
 #[post("/add")]
-async fn add(db: web::Data<RocksDB>, doc: web::Json<Document>)-> Result<HttpResponse, Error> {
-    //add_document(&db, Document { id: doc.id, name: doc.name.to_string(), text: doc.text.to_string() });
-
+async fn add(rocks_db: web::Data<RocksDB>, sqlite_db: web::Data<Pool>, doc: web::Json<Document>)-> Result<HttpResponse, Error> {
+    add_document(rocks_db, sqlite_db, Document { id: doc.id, name: doc.name.to_string(), text: doc.text.to_string() })?;
 
     Ok(HttpResponse::Ok().json(Response {
         response: "Successfully saved to the database.".to_string()
     }))
 }
 
-/* #[post("/edit")]
-async fn edit(db: web::Data<RocksDB>, doc: web::Json<Document>)-> Result<HttpResponse, std::io::Error> {
-    update_document(&db, Document { id: doc.id, name: doc.name.to_string(), text: doc.text.to_string() });
+#[post("/edit")]
+async fn edit(rocks_db: web::Data<RocksDB>, sqlite_db: web::Data<Pool>, doc: web::Json<Document>)-> Result<HttpResponse, Error> {
+    edit_document(rocks_db, sqlite_db, Document { id: doc.id, name: doc.name.to_string(), text: doc.text.to_string() })?;
+
     Ok(HttpResponse::Ok().json(Response {
-        response: "Successfully saved to the database.".to_string()
+        response: "Successfully edit Document.".to_string()
     }))
-} */
+}
 
 #[post("/remove")]
-async fn remove(db: web::Data<RocksDB>, doc: web::Json<Document>)-> Result<HttpResponse, Error> {
-    remove_document(&db, Document { id: doc.id, name: doc.name.to_string(), text: doc.text.to_string() });
+async fn remove(rocks_db: web::Data<RocksDB>, sqlite_db: web::Data<Pool>, doc: web::Json<Document>)-> Result<HttpResponse, Error> {
+    remove_document(rocks_db, sqlite_db, Document { id: doc.id, name: doc.name.to_string(), text: doc.text.to_string() })?;
+
     Ok(HttpResponse::Ok().json(Response {
-        response: "Successfully saved to the database.".to_string()
+        response: "Successfully removed from the database".to_string()
     }))
 }
 
 #[post("/search")]
-async fn search(db: web::Data<RocksDB>, req: web::Json<SearchRequest>)-> Result<HttpResponse, Error> {
-    let results = search_document(&db,  req.query.to_string())?;
-    Ok(HttpResponse::Ok().json(SearchResponse {
-        results
-    }))
+async fn search(rocks_db: web::Data<RocksDB>, sqlite_db: web::Data<Pool>, req: web::Json<SearchRequest>)-> Result<HttpResponse, Error> {
+    let results = search_document(rocks_db, sqlite_db,  req.query.to_string())?;
+
+    Ok(HttpResponse::Ok().json(results))
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let db: kv::RocksDB = kv::KVStore::init("data/rocks");
+    let rocks_db: kv::RocksDB = kv::KVStore::init("data/rocks");
+
+    let manager = SqliteConnectionManager::file("./data/sqlite.db");
+    let sqlite_db = Pool::new(manager).unwrap();
+    init(sqlite_db.get().unwrap()).unwrap();
 
     HttpServer::new(move || {
         App::new()
-            .data(db.clone())
+            .data(rocks_db.clone())
+            .data(sqlite_db.clone())
             .data(web::JsonConfig::default().limit(1024 * 1024 * 50))
             .service(add)
-            //.service(edit)
+            .service(edit)
             .service(remove)
             .service(search)
     })
