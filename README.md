@@ -6,7 +6,7 @@ The key value store used for the inverted index is `rocksdb`. To serialize and d
 
 ### Getting Started
 
-To get started, install `librocksdb-dev`, `llvm` and `clang` using your package manager.
+To get started open the project in vscode and
 
 ### Usage
 
@@ -14,8 +14,7 @@ There are 5 routes. All of them accept only json:
  - `/add` : Adding a book to make it searchable
  - `/edit` : Edit a book
  - `/remove` : Remove a book
- - `/search/one` : Search the text of a single book
- - `/search/all` : Seach the text of all books
+ - `/search` : Search the text of books
 
 
 #### `/add`
@@ -47,13 +46,12 @@ To use the `/remove` route, send:
 }
 ```
 
-#### `/search/one`
-To use the `/search/one` route, send:
+#### `/search`
+To use the `/search` route, send:
 ```
 {
-    "id": The Id of the book in your main database,
-    "searcqueryhText": The text you want to search for,
-    "stopAfterOne": (Boolean) If you want to stop after finding the first result
+    "query": The text you want to search for,
+    "peri_text_length": Length of the text around the search result to be sent back
 }
 ```
 It will send back data resembling this:
@@ -62,28 +60,7 @@ It will send back data resembling this:
     "results": [
         {
             "id": "1",
-            "periText": "test ",
-            "word": 0
-        }
-    ]
-}
-```
-
-#### `/search/all`
-To use the `/search/all` route, send:
-```
-{
-    "searchText": The text you want to search for,
-    "stopAfterOne": (Boolean) If you want to stop after finding the first result
-}
-```
-It will send back data resembling this:
-```
-{
-    "results": [
-        {
-            "id": "1",
-            "periText": "test ",
+            "peri_text": "test ",
             "word": 0
         }
     ]

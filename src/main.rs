@@ -54,7 +54,7 @@ async fn remove(rocks_db: web::Data<RocksDB>, sqlite_db: web::Data<Pool>, doc: w
 
 #[post("/search")]
 async fn search(rocks_db: web::Data<RocksDB>, sqlite_db: web::Data<Pool>, req: web::Json<SearchRequest>)-> Result<HttpResponse, Error> {
-    let results = search_document(rocks_db, sqlite_db,  req.query.to_string())?;
+    let results = search_document(rocks_db, sqlite_db,  req.query.to_string(), req.peri_text_length)?;
 
     Ok(HttpResponse::Ok().json(results))
 }

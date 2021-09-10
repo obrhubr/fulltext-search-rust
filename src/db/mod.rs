@@ -36,7 +36,7 @@ pub fn remove_document(rocks: web::Data<RocksDB>, sqlite: web::Data<Pool>, doc: 
     Ok(())
 }
 
-fn convert_to_search_results(sqlite: Connection, values: Vec<Values>) -> Result<SearchResults, GeneralError> {
+fn convert_to_search_results(sqlite: Connection, values: Vec<Values>, peri_text: i64) -> Result<SearchResults, GeneralError> {
     let mut results: SearchResults = SearchResults { results: Vec::new() };
 
     for v in values {
@@ -45,19 +45,29 @@ fn convert_to_search_results(sqlite: Connection, values: Vec<Values>) -> Result<
             let doc = sqlite::get_document_sqlite(&sqlite, val.id)?;
 
             let split_text = doc[0].text.split(' ').collect::<Vec<&str>>();
-            let pt = &split_text[std::cmp::max(val.position-7, 0) as usize..std::cmp::min(val.position+7, split_text.len() as i64) as usize];
+            let pt = &split_text[std::cmp::max(val.position-peri_text, 0) as usize..std::cmp::min(val.position+peri_text, split_text.len() as i64) as usize];
 
-            results.results.push(SearchResult { id: val.id, peri_text: pt.join(&' '.to_string()), word: val.position.to_string() })
+            results.results.push(SearchResult { id: val.id, peri_text: pt.join(&' '.to_string()), word: val.position.to_string() });
         }
     }
 
     Ok(results)
 }
 
-pub fn search_document(rocks: web::Data<RocksDB>, sqlite: web::Data<Pool>, query: String) -> Result<SearchResults, GeneralError> {
+fn rank_search_results(values: Vec<Values>, peri_text: i64) -> Result<Vec<Values>, GeneralError> {
+    // Concatenate results within range of each other
+    
+
+    // rank by number of results in range of each other
+
+    Ok(values)
+}
+
+pub fn search_document(rocks: web::Data<RocksDB>, sqlite: web::Data<Pool>, query: String, peri_text: i64) -> Result<SearchResults, GeneralError> {
     let rocks_result = rocks::search_document_rocks(&rocks, query)?;
 
-    let res = convert_to_search_results(sqlite.get().unwrap(), rocks_result)?;
+    let ranked = rank_search_results(rocks_result, peri_text)?;
+    let res = convert_to_search_results(sqlite.get().unwrap(), ranked, peri_text)?;
 
     Ok(res)
 }
