@@ -1,4 +1,0 @@
- - rank search results:
-  - 
- - search one method
- - optimise fully inverted index

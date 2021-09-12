@@ -8,6 +8,13 @@ pub struct Value {
 }
 
 #[derive(serde_derive::Serialize, serde_derive::Deserialize, PartialEq, Debug)]
+pub struct RankValue {
+    pub id: i64,
+    pub position: i64,
+    pub word_num: i64
+}
+
+#[derive(serde_derive::Serialize, serde_derive::Deserialize, PartialEq, Debug)]
 pub struct Values {
     pub values: Vec<Value>
 }

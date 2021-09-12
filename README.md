@@ -46,10 +46,32 @@ To use the `/remove` route, send:
 }
 ```
 
-#### `/search`
-To use the `/search` route, send:
+#### `/search/all`
+To use the `/search/all` route, send:
 ```
 {
+    "query": The text you want to search for,
+    "peri_text_length": Length of the text around the search result to be sent back
+}
+```
+It will send back data resembling this:
+```
+{
+    "results": [
+        {
+            "id": "1",
+            "peri_text": "test ",
+            "word": 0
+        }
+    ]
+}
+```
+
+#### `/search/one`
+To use the `/search/one` route, send:
+```
+{
+    "id": The id of the book you want to search in,
     "query": The text you want to search for,
     "peri_text_length": Length of the text around the search result to be sent back
 }

@@ -7,7 +7,7 @@ use r2d2_sqlite::{self, SqliteConnectionManager};
 
 mod db;
 mod kv;
-use crate::db::{add_document, edit_document, remove_document, search_document};
+use crate::db::{add_document, edit_document, remove_document, search_document, search_one_document};
 use crate::db::sqlite::{init, Pool};
 use crate::db::helper::{Document};
 use crate::kv::RocksDB;
@@ -52,9 +52,16 @@ async fn remove(rocks_db: web::Data<RocksDB>, sqlite_db: web::Data<Pool>, doc: w
     }))
 }
 
-#[post("/search")]
+#[post("/search/all")]
 async fn search(rocks_db: web::Data<RocksDB>, sqlite_db: web::Data<Pool>, req: web::Json<SearchRequest>)-> Result<HttpResponse, Error> {
     let results = search_document(rocks_db, sqlite_db,  req.query.to_string(), req.peri_text_length)?;
+
+    Ok(HttpResponse::Ok().json(results))
+}
+
+#[post("/search/one")]
+async fn search_one(rocks_db: web::Data<RocksDB>, sqlite_db: web::Data<Pool>, req: web::Json<SearchRequest>)-> Result<HttpResponse, Error> {
+    let results = search_one_document(rocks_db, sqlite_db,  req.query.to_string(), req.id, req.peri_text_length)?;
 
     Ok(HttpResponse::Ok().json(results))
 }
@@ -76,6 +83,7 @@ async fn main() -> std::io::Result<()> {
             .service(edit)
             .service(remove)
             .service(search)
+            .service(search_one)
     })
     .bind("127.0.0.1:3000")?
     .run()
