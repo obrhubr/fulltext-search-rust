@@ -2,6 +2,9 @@ use crate::kv::{KVStore, RocksDB};
 use actix_web::{web};
 use bincode::{serialize, deserialize};
 
+extern crate phf;
+include!(concat!(env!("OUT_DIR"), "/codegen.rs"));
+
 use super::helper::{Document, GeneralError, Value, Values, remove_punctuation};
 
 pub fn search_document_rocks(db: &web::Data<RocksDB>, query: String) -> Result<Vec<Values>, GeneralError> {
@@ -14,6 +17,10 @@ pub fn search_document_rocks(db: &web::Data<RocksDB>, query: String) -> Result<V
     for word in split_query {
         // Remove punctuation and whitespaces from word
         let normalised_word = remove_punctuation(word.to_string());
+
+        if KEYWORDS.contains(&normalised_word) {
+            continue;
+        }
 
         // Check if word is indexed
         match db.find(normalised_word.as_bytes()) {
@@ -35,6 +42,10 @@ pub fn search_document_rocks(db: &web::Data<RocksDB>, query: String) -> Result<V
     Ok(search_results)
 }
 
+pub fn check_stopword(word: &str) -> bool {
+    KEYWORDS.contains(word)
+}
+
 pub fn add_document_rocks(db: &web::Data<RocksDB>, doc: &Document) -> Result<(), GeneralError> {
     // Split the input text by words
     let split_text = doc.text.split(' ');
@@ -43,6 +54,12 @@ pub fn add_document_rocks(db: &web::Data<RocksDB>, doc: &Document) -> Result<(),
     for word in split_text {
         // Remove punctuation and whitespaces from word
         let normalised_word = remove_punctuation(word.to_string());
+
+        // Check if stopword
+        if check_stopword(&normalised_word) {
+            i += 1;
+            continue;
+        }
 
         // Create array to contain the updates values array
         let mut new_values: Values = Values { values: Vec::new() };

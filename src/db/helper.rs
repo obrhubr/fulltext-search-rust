@@ -21,7 +21,7 @@ pub struct Values {
 
 pub fn remove_punctuation(mut word: String) -> String {
     word.retain(|c| !c.is_whitespace() || !c.is_ascii_punctuation() || c.is_alphanumeric());
-    word
+    word.to_lowercase()
 }
 
 #[derive(Serialize, Deserialize)]

@@ -13,7 +13,7 @@ pub mod helper;
 pub mod rocks;
 pub mod sqlite;
 
-pub fn add_document(rocks: web::Data<RocksDB>, sqlite: web::Data<Pool>, doc: Document) -> Result<(), GeneralError> {
+pub fn add_document(rocks: web::Data<RocksDB>, sqlite: web::Data<Pool>, mut doc: Document) -> Result<(), GeneralError> {
     rocks::add_document_rocks(&rocks, &doc)?;
     sqlite::add_document_sqlite(sqlite.get().unwrap(), &doc)?;
 
@@ -120,6 +120,10 @@ pub fn flatten_results(values: Vec<Values>) -> Vec<Value> {
 pub fn search_document(rocks: web::Data<RocksDB>, sqlite: web::Data<Pool>, query: String, peri_text: i64) -> Result<SearchResults, GeneralError> {
     let rocks_result = rocks::search_document_rocks(&rocks, query)?;
 
+    if rocks_result.is_empty() {
+        return Ok(SearchResults { results: Vec::new() })
+    }
+
     let ranked = rank_search_results(flatten_results(rocks_result), peri_text)?;
     let res = convert_to_search_results(sqlite.get().unwrap(), ranked, peri_text)?;
 
@@ -128,6 +132,10 @@ pub fn search_document(rocks: web::Data<RocksDB>, sqlite: web::Data<Pool>, query
 
 pub fn search_one_document(rocks: web::Data<RocksDB>, sqlite: web::Data<Pool>, query: String, id: i64, peri_text: i64) -> Result<SearchResults, GeneralError> {
     let rocks_result = rocks::search_document_rocks(&rocks, query)?;
+
+    if rocks_result.is_empty() {
+        return Ok(SearchResults { results: Vec::new() })
+    }
 
     let flattened = flatten_results(rocks_result);
     let filtered = flattened.into_iter().filter(|val| val.id == id).collect();
