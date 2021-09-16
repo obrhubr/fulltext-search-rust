@@ -1,6 +1,4 @@
 use actix_web::{post, web, App, Error, HttpResponse, HttpServer};
-use db::helper::GeneralError;
-use db::sqlite;
 use serde::{Deserialize, Serialize};
 
 use r2d2_sqlite::{self, SqliteConnectionManager};

@@ -99,7 +99,7 @@ fn rank_search_results(mut values: Vec<Value>, peri_text: i64) -> Result<Vec<Ran
     results.push(final_val);
 
     // Sort by number of results in range of each other
-    results.sort_by(|a, b| a.word_num.partial_cmp(&b.word_num).unwrap());
+    results.sort_by(|a, b| b.word_num.partial_cmp(&a.word_num).unwrap());
 
     Ok(results)
 }
@@ -135,4 +135,62 @@ pub fn search_one_document(rocks: web::Data<RocksDB>, sqlite: web::Data<Pool>, q
     let res = convert_to_search_results(sqlite.get().unwrap(), ranked, peri_text)?;
 
     Ok(res)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::db::{flatten_results, rank_search_results};
+    use crate::db::helper::{RankValue, Value, Values};
+
+    #[test]
+    fn flatten_results_unit_test() {
+        let mut values = Vec::new();
+
+        let mut c = 0;
+        for _i in 0..2 {
+            let mut vals = Values { values: Vec::new() };
+            for _j in 0..2 {
+                vals.values.push(Value {id: c, position: c});
+                c += 1;
+            }
+            values.push(vals);
+        }
+
+        let mut flattened = Vec::new();
+        for i in 0..4 {
+            flattened.push(Value { id: i, position: i });
+        }
+
+        assert_eq!(
+            flatten_results(values), 
+            flattened
+        )
+    }
+
+    #[test]
+    fn search_ranking_unit_test() {
+        let values = vec![
+            Value { id: 0 , position: 0},
+            Value { id: 0 , position: 1},
+            Value { id: 0 , position: 2},
+            Value { id: 1 , position: 0},
+            Value { id: 1 , position: 10},
+            Value { id: 1 , position: 100},
+            Value { id: 2 , position: 0},
+            Value { id: 2 , position: 100},
+        ];
+
+        let ranked = vec![
+            RankValue { id: 0 , position: 3, word_num: 3},
+            RankValue { id: 1 , position: 15, word_num: 2},
+            RankValue { id: 1 , position: 100, word_num: 1},
+            RankValue { id: 2 , position: 0, word_num: 1},
+            RankValue { id: 2 , position: 100, word_num: 1},
+        ];
+
+        assert_eq!(
+            rank_search_results(values, 15).unwrap(),
+            ranked
+        )
+    }
 }
