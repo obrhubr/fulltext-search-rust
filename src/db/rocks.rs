@@ -5,6 +5,9 @@ use bincode::{serialize, deserialize};
 extern crate phf;
 include!(concat!(env!("OUT_DIR"), "/codegen.rs"));
 
+extern crate rust_stemmers;
+use rust_stemmers::{Algorithm, Stemmer};
+
 use super::helper::{Document, GeneralError, Value, Values, remove_punctuation};
 
 pub fn search_document_rocks(db: &web::Data<RocksDB>, query: String) -> Result<Vec<Values>, GeneralError> {
@@ -50,6 +53,9 @@ pub fn add_document_rocks(db: &web::Data<RocksDB>, doc: &Document) -> Result<(),
     // Split the input text by words
     let split_text = doc.text.split(' ');
 
+    // Create a stemmer for the english language
+    let en_stemmer = Stemmer::create(Algorithm::English);
+
     let mut i: i64 = 0;
     for word in split_text {
         // Remove punctuation and whitespaces from word
@@ -61,11 +67,13 @@ pub fn add_document_rocks(db: &web::Data<RocksDB>, doc: &Document) -> Result<(),
             continue;
         }
 
+        let stemmed_word = en_stemmer.stem(&normalised_word).to_string();
+
         // Create array to contain the updates values array
         let mut new_values: Values = Values { values: Vec::new() };
 
         // Check if word already exists in db
-        match db.find(normalised_word.as_bytes()) {
+        match db.find(stemmed_word.as_bytes()) {
             Ok(Some(value)) => {
                 // Deserialize the db result and append the new value to it if value already exists
                 let mut decoded_values: Values = deserialize(&value[..]).unwrap();
@@ -83,7 +91,7 @@ pub fn add_document_rocks(db: &web::Data<RocksDB>, doc: &Document) -> Result<(),
         }
 
         // Serialize values that contain the new value and put to db
-        db.save(normalised_word.as_bytes(), &serialize(&new_values).unwrap()).unwrap();
+        db.save(stemmed_word.as_bytes(), &serialize(&new_values).unwrap()).unwrap();
 
         i += 1;
     }
