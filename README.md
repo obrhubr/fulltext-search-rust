@@ -4,10 +4,6 @@ This rust application is essentially a better version of [github.com/obrhubr/ful
 
 The key value store used for the inverted index is `rocksdb`. To serialize and deserialize the values, `bincode` and `serde` are used. To store the actual text, `sqlite` is used. The library used to create the web interface is `actix-web` with `serde_json` being the serializer and deserializer.
 
-### Getting Started
-
-To get started open the project in vscode and
-
 ### Usage
 
 There are 5 routes. All of them accept only json: 
