@@ -4,6 +4,10 @@ This rust application is essentially a better version of [github.com/obrhubr/ful
 
 The key value store used for the inverted index is `rocksdb`. To serialize and deserialize the values, `bincode` and `serde` are used. To store the actual text, `sqlite` is used. The library used to create the web interface is `actix-web` with `serde_json` being the serializer and deserializer.
 
+### Architecture 
+
+The search engine relies on an inverted index to make the books searchable. For each word that exists in the books, a key is created in the KV store (RocksDB) and each occurence of the word is stored as a pair of (book_id, position_in_book). If a user searches for "Book" for example, the engine will first get the positions of each occurence, then fetch the sourrounding text from the book and return the results after ranking them. If the user searches for multiple words, ex: "Comic Book", the engine will fetch the occurences for both word, and if there are occurences of both words in close proximity in the same book, it will rank that higher.
+
 ### Usage
 
 There are 5 routes. All of them accept only json: 
