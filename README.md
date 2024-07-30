@@ -1,7 +1,5 @@
 # Fulltext Search Rust
 
-This rust application is essentially a better version of [github.com/obrhubr/fulltext-search-cpp](https://github.com/obrhubr/fulltext-search-cpp). 
-
 The key value store used for the inverted index is `rocksdb`. To serialize and deserialize the values, `bincode` and `serde` are used. To store the actual text, `sqlite` is used. The library used to create the web interface is `actix-web` with `serde_json` being the serializer and deserializer.
 
 ### Architecture 
